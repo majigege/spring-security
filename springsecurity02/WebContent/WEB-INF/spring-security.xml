@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+          http://www.springframework.org/schema/security
+          http://www.springframework.org/schema/security/spring-security-4.2.xsd">
+
+	<!-- 认证管理器  AuthenticationManager-->
+	<security:authentication-manager alias="myAuthenticationManager">
+		<!-- provider   userServiceDetail用注解的方式-->
+		<security:authentication-provider
+			user-service-ref="userServiceDetail">
+		</security:authentication-provider>
+	</security:authentication-manager>
+	
+	
+	<!-- 进入点 -->
+	<bean id="entryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+		<constructor-arg value="/logon.jsp"></constructor-arg>
+     </bean>
+         
+         <!-- 访问被拒绝 -->
+       <bean id="accessDeniedHandler" class="org.springframework.security.web.access.AccessDeniedHandlerImpl">
+            <property name="errorPage" value="/access_denied.jsp" />
+        </bean>
+	
+	<!-- 处理异常的FILTER, 界面上可以打出异常信息 -->
+	<bean id="exceptionTranslationFilter"
+      class="org.springframework.security.web.access.ExceptionTranslationFilter">
+      <constructor-arg name="authenticationEntryPoint"  ref="entryPoint"></constructor-arg>
+      <property name="accessDeniedHandler"  ref="accessDeniedHandler"/>
+        
+   </bean>
+
+<!-- 自定义FILTER -->
+	<bean id="loginFilter" class="com.uc.security.LoginFilter" >
+		<property name="authenticationSuccessHandler" ref="loginLogAuthenticationSuccessHandler"></property>
+		<property name="authenticationFailureHandler" ref="simpleUrlAuthenticationFailureHandler"></property>
+		<property name="authenticationManager" ref="myAuthenticationManager"></property>
+		<property name="filterProcessesUrl" value="/login"></property>
+	</bean>
+
+
+<!-- 登录成功后的处理 -->
+	<bean id="loginLogAuthenticationSuccessHandler"
+		class="org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler">
+		<property name="defaultTargetUrl" value="/index.jsp"></property>
+	</bean>
+	
+	<!-- 登录失败后的处理 -->
+	<bean id="simpleUrlAuthenticationFailureHandler"
+		class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+		<property name="defaultFailureUrl" value="/logon.jsp"></property>
+	</bean>
+
+	<security:http  use-expressions="true" auto-config="true" >
+	
+		<!-- 如果前端框架用了iframe 设置这个标签 -->
+		<security:headers>
+				<security:frame-options policy="SAMEORIGIN" strategy="static"/>
+		</security:headers>
+
+		
+		<!-- 设置角色 可以访问的URL -->
+		<security:intercept-url pattern="/user/**" access="hasRole('ROLE_USER')" />
+	    <security:intercept-url pattern="/home/**" access="hasRole('ROLE_ADMIN')" />
+	    
+	    <!-- 退出  会清除权限 及cookie-->
+	    <security:logout logout-url="/logout" logout-success-url="/logon.jsp" invalidate-session="true" delete-cookies="true" />
+		<security:csrf disabled="true" />
+		
+		  <!--自定义的登录界面  -->  
+        <security:form-login login-page="/logon.jsp" default-target-url="/index.jsp"   username-parameter="username"
+         password-parameter="password" always-use-default-target="true" login-processing-url="/login"/>  
+                
+         <!-- 定义的FILTER -->       
+		<security:custom-filter ref="loginFilter" before="FORM_LOGIN_FILTER"/>
+		<security:custom-filter ref="exceptionTranslationFilter" after="EXCEPTION_TRANSLATION_FILTER"/>
+		
+	</security:http>
+	
+	
+
+
+</beans>

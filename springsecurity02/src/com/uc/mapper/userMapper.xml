@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<mapper namespace="com.uc.pojo.User" >
+
+<!-- 做类与数据库的映射 -->
+<resultMap type="com.uc.pojo.User" id="userMapper" >
+
+	<result column="id"  property="id" jdbcType="INTEGER" javaType="int"/>
+	<result column="username"  property="name" jdbcType="VARCHAR" javaType="string"/>
+	<result column="password"  property="pwd" jdbcType="VARCHAR" javaType="string"/>
+</resultMap>
+
+</mapper>

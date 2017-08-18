@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+	<!-- jdbc.propertis Directory -->
+	<context:property-placeholder location="/WEB-INF/classes/jdbc.properties" />
+
+	<!-- apache DBCP Connection pool -->
+	<!--
+		BasicDataSource提供了close()方法关闭数据源，所以必须设定destroy-method=”close”属性，
+		以便Spring容器关闭时，数据源能够正常关闭
+	-->
+	<bean id="dataSource" destroy-method="close"
+		class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<property name="timeBetweenEvictionRunsMillis" value="28800" />
+		<property name="testWhileIdle" value="true" />
+		<property name="validationQuery" value="SELECT 1 FROM dual" />
+		
+	</bean>
+
+	<!-- define the SqlSessionFactory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="mapperLocations" value="classpath*:com/uc/mapper/*.xml" />
+		<property name="typeAliasesPackage" value="com.uc.po" />
+	</bean>
+
+	<!-- scan for mappers and let them be autowired -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.uc.mapper" />
+	</bean>
+
+	<!-- transaction manager, use JtaTransactionManager for global tx -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	
+	<!-- 拦截器方式配置事物 -->
+    <tx:advice id="transactionAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="insert*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="update*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="delete*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="save*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="add*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="append*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="modify*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="edit*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="remove*" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="init" propagation="REQUIRED"  rollback-for="Exception" />
+            <tx:method name="delAndInit" propagation="REQUIRED"  rollback-for="Exception" />
+
+            <tx:method name="select*" propagation="SUPPORTS" read-only="true" />
+            <tx:method name="get*" propagation="SUPPORTS" read-only="true" />
+            <tx:method name="find*" propagation="SUPPORTS" read-only="true" />
+            <tx:method name="load*" propagation="SUPPORTS" read-only="true" />
+            <tx:method name="search*" propagation="SUPPORTS" read-only="true" />
+            <tx:method name="datagrid*" propagation="SUPPORTS" read-only="true" />
+
+            <tx:method name="*" propagation="REQUIRED"  rollback-for="Exception" />
+        </tx:attributes>
+    </tx:advice>
+    
+    <aop:config>
+        <aop:pointcut id="transactionPointcut" expression="execution(* com.uc.service..*.*(..))" />
+        <aop:advisor pointcut-ref="transactionPointcut" advice-ref="transactionAdvice" />
+    </aop:config>
+
+	<!--
+		enable component scanning (beware that this does not enable mapper
+		scanning!)
+	-->
+	<aop:aspectj-autoproxy proxy-target-class="true" />
+
+	<context:component-scan annotation-config="true"
+		base-package="com.uc.*" />
+
+	<!-- enable autowire -->
+	<context:annotation-config />
+
+	<!-- enable transaction demarcation with annotations -->
+	<tx:annotation-driven proxy-target-class="true"
+		transaction-manager="transactionManager" />
+
+</beans>
